@@ -2,10 +2,15 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
 .env
 .venv/
 venv/
+env/
 
 .streamlit/secrets.toml
 
@@ -13,3 +18,12 @@ venv/
 Thumbs.db
 
 *.log
+
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local app backup versions
+app_v*_working.py
