@@ -126,34 +126,24 @@ app.py                         # Main Streamlit application
 requirements.txt               # Runtime dependencies
 README.md                      # Project overview, usage, and portfolio notes
 .gitignore                     # Local/cache files excluded from Git
-docs/screenshots/              # Placeholder location for future portfolio screenshots
+docs/screenshots/              # Final v1.0.0 portfolio screenshots
 docs/examples/                 # Placeholder location for future example reports
 docs/dev-notes/                # Lightweight development notes and milestone log
 assets/                        # Optional supporting media
 app_v0_*_working.py            # Local backup snapshots from prior milestones
 ```
 
-## Suggested Screenshots
+## Screenshots
 
-Final screenshots are intentionally deferred until after v1.0. Placeholder notes live in `docs/screenshots/README.md`.
+Final v1.0.0 portfolio screenshots are available in [`docs/screenshots`](docs/screenshots/README.md).
 
-Planned screenshot paths:
-
-```text
-docs/screenshots/01_search_results.png
-docs/screenshots/02_result_filters.png
-docs/screenshots/03_markdown_report.png
-docs/screenshots/04_single_structure_summary.png
-docs/screenshots/05_compare_structures.png
-```
-
-Suggested captions:
-
-- Search results with receptor overview and structure landscape
-- Filtered GPCR result table
-- Markdown report preview/export workflow
-- Single structure summary with chains, ligands, and GPCR annotations
-- Multi-structure comparison view
+![Homepage search interface](docs/screenshots/01_home_search.png)
+![GPR55 search results](docs/screenshots/02_gpr55_results.png)
+![MT1 melatonin receptor results](docs/screenshots/03_mt1_results.png)
+![GPCR-specific annotations](docs/screenshots/04_gpcr_annotations.png)
+![Single PDB inspection](docs/screenshots/05_single_pdb_inspection.png)
+![CSV and Markdown export area](docs/screenshots/06_export_area.png)
+![About page showing Version v1.0.0](docs/screenshots/07_about_v1.png)
 
 ## Technical Stack
 

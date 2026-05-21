@@ -1,11 +1,15 @@
-# Screenshot Placeholders
+# v1.0.0 Screenshot Set
 
-Final screenshots will be added after v1.0, once the core search, filtering, annotation, and export workflows are stable enough for polished portfolio presentation.
+Final screenshots for the v1.0.0 portfolio release are stored in this folder.
 
-Planned screenshot set:
+| File | View |
+|---|---|
+| `01_home_search.png` | Homepage / GPCR search interface |
+| `02_gpr55_results.png` | GPR55 search results |
+| `03_mt1_results.png` | MT1 search results showing melatonin receptor MT1 / MTNR1A hits |
+| `04_gpcr_annotations.png` | GPCR-specific annotation section |
+| `05_single_pdb_inspection.png` | Single PDB inspection section |
+| `06_export_area.png` | CSV and Markdown export area |
+| `07_about_v1.png` | About page showing Version v1.0.0 |
 
-- Search results with receptor overview and structure landscape
-- Result filters and compact PDB table
-- Markdown report preview and export controls
-- Single PDB inspection with GPCR-specific annotations
-- Multi-structure comparison table
+These images are intended for GitHub README and LinkedIn portfolio presentation.
