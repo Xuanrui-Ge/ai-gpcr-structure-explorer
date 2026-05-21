@@ -23,12 +23,13 @@ This project adds a conservative receptor-focused layer on top of RCSB and UniPr
 
 ## Current Version
 
-Current app display version: **v0.9.5**
+Current app display version: **v0.9.6**
 
-v0.9.5 is a portfolio-packaging update. It updates this README and the displayed app version while preserving the working v0.9.4 app logic.
+v0.9.6 is a lightweight portfolio-assets preparation update. It adds placeholder documentation folders for future screenshots, example outputs, and development notes while preserving the working v0.9.4/v0.9.5 app logic.
 
 Recent milestones:
 
+- **v0.9.6:** Adds lightweight `docs/` placeholders for future screenshots, example outputs, and development notes.
 - **v0.9.4:** Adds conservative MT1 query disambiguation so melatonin receptor MT1/MTNR1A searches exclude obvious MT1-MMP/MMP14 metalloproteinase hits.
 - **v0.9.3:** Replaces deprecated Streamlit table width usage and lightly polishes UI messages.
 - **v0.9.2/v0.9.0:** Adds rule-based GPCR-specific structural annotations for constructs, complex partners, ligand context, activation context, confidence, and evidence terms.
@@ -123,20 +124,25 @@ app.py                         # Main Streamlit application
 requirements.txt               # Runtime dependencies
 README.md                      # Project overview, usage, and portfolio notes
 .gitignore                     # Local/cache files excluded from Git
-assets/                        # Optional screenshots or supporting media
+docs/screenshots/              # Placeholder location for future portfolio screenshots
+docs/examples/                 # Placeholder location for future example reports
+docs/dev-notes/                # Lightweight development notes and milestone log
+assets/                        # Optional supporting media
 app_v0_*_working.py            # Local backup snapshots from prior milestones
 ```
 
 ## Suggested Screenshots
 
-Add screenshots to the following paths for a GitHub portfolio README:
+Final screenshots are intentionally deferred until after v1.0. Placeholder notes live in `docs/screenshots/README.md`.
+
+Planned screenshot paths:
 
 ```text
-assets/screenshots/01_search_results.png
-assets/screenshots/02_result_filters.png
-assets/screenshots/03_markdown_report.png
-assets/screenshots/04_single_structure_summary.png
-assets/screenshots/05_compare_structures.png
+docs/screenshots/01_search_results.png
+docs/screenshots/02_result_filters.png
+docs/screenshots/03_markdown_report.png
+docs/screenshots/04_single_structure_summary.png
+docs/screenshots/05_compare_structures.png
 ```
 
 Suggested captions:

@@ -1516,7 +1516,7 @@ def build_gpcr_markdown_report(
     filtered_rows: list,
     total_rows: list,
     diagnostics: dict = None,
-    app_version: str = "v0.9.5",
+    app_version: str = "v0.9.6",
 ) -> str:
     """Build a local, rule-based Markdown report for filtered GPCR search results."""
     q = (receptor_query or "GPCR search").strip()
@@ -4558,7 +4558,7 @@ with tab1:
                 filtered_result_rows,
                 result_rows,
                 diagnostics=saved_search_diagnostics,
-                app_version="v0.9.5",
+                app_version="v0.9.6",
             )
 
             with st.expander("Preview Markdown report", expanded=False):
@@ -4743,7 +4743,7 @@ with tab3:
 with tab4:
     st.header("About AI GPCR Structure Explorer")
 
-    st.caption("Version v0.9.5")
+    st.caption("Version v0.9.6")
 
     st.write(
         """
@@ -4754,6 +4754,8 @@ with tab4:
         PDB entries, experimental methods, resolution, ligands, polymer entities, fusion-protein
         strategies, signaling partners, receptor states, and construct-design references.
 
+        Version v0.9.6 prepares lightweight documentation folders for future
+        portfolio screenshots, example outputs, and development notes.
         Version v0.9.5 updates GitHub portfolio packaging and documentation
         while preserving the v0.9.4 application logic.
         Version v0.9.4 adds conservative MT1 query disambiguation so melatonin
