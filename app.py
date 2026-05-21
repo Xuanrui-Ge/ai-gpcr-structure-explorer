@@ -1516,7 +1516,7 @@ def build_gpcr_markdown_report(
     filtered_rows: list,
     total_rows: list,
     diagnostics: dict = None,
-    app_version: str = "v0.9.6",
+    app_version: str = "v1.0.0",
 ) -> str:
     """Build a local, rule-based Markdown report for filtered GPCR search results."""
     q = (receptor_query or "GPCR search").strip()
@@ -3886,14 +3886,14 @@ with tab1:
     st.header("Search by GPCR Name")
 
     st.caption(
-        "Search by receptor name, abbreviation, or gene symbol. The app expands aliases, "
-        "checks UniProt PDB cross-references, and summarizes receptor-specific structures."
+        "Search by receptor name, abbreviation, or gene symbol. Good portfolio smoke tests include "
+        "GPR6, GPR55, A2A, MT1, GPER, and GABAB1."
     )
 
     with st.form("gpcr_name_search_form"):
         receptor_query = st.text_input(
             "Enter a GPCR name, abbreviation, or gene symbol",
-            placeholder="Example: GPR6, A2A, A2AAR, ADORA2A, adenosine A2A receptor, GPR55"
+            placeholder="Example: GPR6, GPR55, A2A, MT1, GPER, GABAB1"
         )
 
         search_col1, search_col2, search_col3 = st.columns([1, 1, 1.2])
@@ -3952,7 +3952,7 @@ with tab1:
 
     if search_submitted:
         if not receptor_query.strip():
-            st.warning("Enter a GPCR name, abbreviation, or gene symbol to start a structure search.")
+            st.warning("Enter a GPCR name, abbreviation, or gene symbol to start a structure search. Try GPR55, MT1, or A2A.")
         else:
             st.session_state["gpcr_candidate_truncation_note"] = None
 
@@ -4049,7 +4049,8 @@ with tab1:
             if not candidate_pdb_ids:
                 st.error(
                     "No candidate PDB structures were found for this query. "
-                    "Try another receptor name, gene symbol, or enable supplemental RCSB search."
+                    "Try a gene symbol or common receptor alias, such as GPR6, GPR55, A2A, MT1, GPER, or GABAB1. "
+                    "You can also enable supplemental RCSB search for broader discovery."
                 )
                 st.session_state["gpcr_result_rows"] = None
                 st.session_state["gpcr_excluded_rows"] = []
@@ -4100,7 +4101,7 @@ with tab1:
                 if not result_rows:
                     st.error(
                         "Candidate structures were found, but none passed the receptor-specific filter. "
-                        "Review the search details or broaden the query if this seems unexpected."
+                        "Review the search details, try a more specific receptor name or gene symbol, or broaden discovery with supplemental RCSB search."
                     )
                     st.session_state["gpcr_result_rows"] = None
                     st.session_state["gpcr_excluded_rows"] = excluded_rows
@@ -4558,7 +4559,7 @@ with tab1:
                 filtered_result_rows,
                 result_rows,
                 diagnostics=saved_search_diagnostics,
-                app_version="v0.9.6",
+                app_version="v1.0.0",
             )
 
             with st.expander("Preview Markdown report", expanded=False):
@@ -4579,10 +4580,11 @@ with tab1:
 
 with tab2:
     st.header("Single Structure Summary")
+    st.caption("Inspect one PDB entry in detail. Useful examples include 8ZX4 for GPR55, 6ME2 for MT1, and 4EIY for A2A.")
 
     query = st.text_input(
         "Enter a PDB ID",
-        placeholder="Example: 4EIY, 1CRN, 6D9H"
+        placeholder="Example: 8ZX4, 6ME2, 4EIY"
     )
 
     if st.button("Search"):
@@ -4668,10 +4670,11 @@ with tab2:
 
 with tab3:
     st.header("Compare Multiple GPCR Structures")
+    st.caption("Compare a short list of PDB IDs from one receptor family or across receptor examples.")
 
     compare_query = st.text_area(
         "Enter multiple PDB IDs separated by commas",
-        placeholder="Example: 4EIY, 3EML, 5G53, 6GDG"
+        placeholder="Example: 8ZX4, 9GE2, 6ME2, 4EIY"
     )
 
     if st.button("Compare Structures"):
@@ -4743,17 +4746,21 @@ with tab3:
 with tab4:
     st.header("About AI GPCR Structure Explorer")
 
-    st.caption("Version v0.9.6")
+    st.caption("Version v1.0.0")
 
     st.write(
         """
-        AI GPCR Structure Explorer is a Python/Streamlit web app for searching,
-        summarizing, and comparing GPCR-related structures from the RCSB Protein Data Bank.
+        AI GPCR Structure Explorer is a Python/Streamlit portfolio app for searching,
+        summarizing, comparing, and exporting GPCR-related structures from the RCSB Protein Data Bank.
 
         The tool is designed for structural biology researchers who want to quickly review
         PDB entries, experimental methods, resolution, ligands, polymer entities, fusion-protein
         strategies, signaling partners, receptor states, and construct-design references.
 
+        Version v1.0.0 marks the first portfolio-ready release candidate of the current
+        GPCR structure search, annotation, filtering, and export workflow.
+        Version v0.9.7 is a final pre-v1.0 readability polish pass with clearer
+        example guidance, search messages, and portfolio-oriented About text.
         Version v0.9.6 prepares lightweight documentation folders for future
         portfolio screenshots, example outputs, and development notes.
         Version v0.9.5 updates GitHub portfolio packaging and documentation

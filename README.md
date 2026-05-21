@@ -23,12 +23,14 @@ This project adds a conservative receptor-focused layer on top of RCSB and UniPr
 
 ## Current Version
 
-Current app display version: **v0.9.6**
+Current app display version: **v1.0.0**
 
-v0.9.6 is a lightweight portfolio-assets preparation update. It adds placeholder documentation folders for future screenshots, example outputs, and development notes while preserving the working v0.9.4/v0.9.5 app logic.
+v1.0.0 is the first portfolio-ready release candidate for the current GPCR structure search, annotation, filtering, and export workflow.
 
 Recent milestones:
 
+- **v1.0.0:** Marks the first portfolio-ready release candidate without adding new app features.
+- **v0.9.7:** Adds final pre-v1.0 readability polish for helper text, examples, and About copy.
 - **v0.9.6:** Adds lightweight `docs/` placeholders for future screenshots, example outputs, and development notes.
 - **v0.9.4:** Adds conservative MT1 query disambiguation so melatonin receptor MT1/MTNR1A searches exclude obvious MT1-MMP/MMP14 metalloproteinase hits.
 - **v0.9.3:** Replaces deprecated Streamlit table width usage and lightly polishes UI messages.
