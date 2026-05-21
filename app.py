@@ -132,10 +132,77 @@ st.markdown(
         color: var(--gpcr-text-muted);
     }
 
+    div[data-testid="stAlert"] {
+        border-radius: 8px;
+        padding: 0.65rem 0.8rem;
+        box-shadow: none;
+    }
+
+    div[data-testid="stAlert"] p {
+        line-height: 1.45;
+    }
+
+    h2, h3 {
+        letter-spacing: 0;
+    }
+
+    h3 {
+        margin-top: 1.15rem;
+    }
+
     hr {
         border: 0;
         border-top: 1px solid var(--gpcr-border);
         margin: 1.2rem 0;
+    }
+
+    div[data-testid="stElementContainer"]:has(.result-workspace-tabs-marker) {
+        display: none;
+    }
+
+    div[data-testid="stElementContainer"]:has(.result-workspace-tabs-marker)
+    + div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        align-items: center;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding: 0.35rem;
+        margin: 0.25rem 0 1rem 0;
+        border: 1px solid var(--gpcr-border);
+        border-radius: 8px;
+        background: #eef5f7;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    div[data-testid="stElementContainer"]:has(.result-workspace-tabs-marker)
+    + div[data-testid="stTabs"] [data-baseweb="tab"] {
+        min-height: 2.4rem;
+        padding: 0.55rem 0.95rem;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: #405160;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+    }
+
+    div[data-testid="stElementContainer"]:has(.result-workspace-tabs-marker)
+    + div[data-testid="stTabs"] [data-baseweb="tab"]:hover {
+        background: #f8fbfc;
+        border-color: #cfdee2;
+        color: #254b50;
+    }
+
+    div[data-testid="stElementContainer"]:has(.result-workspace-tabs-marker)
+    + div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
+        background: #ffffff;
+        border-color: #b8cdd2;
+        color: var(--gpcr-accent);
+        box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
+    }
+
+    div[data-testid="stElementContainer"]:has(.result-workspace-tabs-marker)
+    + div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+        display: none;
     }
     </style>
     """,
@@ -1213,6 +1280,8 @@ def build_compact_result_rows(rows):
             "Organism": row.get("Organism", "N/A"),
             "Ligands": row.get("Ligands", "N/A"),
             "Fusion / Partner": row.get("Fusion / Partner", "N/A"),
+            "Ligand Context": row.get("Ligand Context", "N/A"),
+            "Activation Context": row.get("Activation Context", "N/A"),
             "Likely State": row.get("Likely State", "N/A"),
             "Role": row.get("Use Case", "N/A"),
         })
@@ -1447,7 +1516,7 @@ def build_gpcr_markdown_report(
     filtered_rows: list,
     total_rows: list,
     diagnostics: dict = None,
-    app_version: str = "v0.8.0",
+    app_version: str = "v0.9.4",
 ) -> str:
     """Build a local, rule-based Markdown report for filtered GPCR search results."""
     q = (receptor_query or "GPCR search").strip()
@@ -1492,7 +1561,7 @@ def build_gpcr_markdown_report(
             "",
         ])
 
-    headers = ["PDB ID", "Title", "Method", "Resolution", "Release Date", "Release Year", "Organism", "Ligands", "Likely State"]
+    headers = ["PDB ID", "Title", "Method", "Resolution", "Release Date", "Release Year", "Organism", "Ligands", "Complex Partner", "Ligand Context", "Activation Context", "Likely State"]
     lines.extend(["## Structure Overview", "", "| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"])
 
     if filtered_rows:
@@ -1508,11 +1577,14 @@ def build_gpcr_markdown_report(
                 markdown_table_cell(release_year if release_year is not None else "N/A"),
                 markdown_table_cell(row.get("Organism", "N/A")),
                 markdown_table_cell(row.get("Ligands", "N/A")),
+                markdown_table_cell(row.get("Complex Partner", "N/A")),
+                markdown_table_cell(row.get("Ligand Context", "N/A")),
+                markdown_table_cell(row.get("Activation Context", "N/A")),
                 markdown_table_cell(row.get("Likely State", "N/A")),
             ]
             lines.append("| " + " | ".join(cells) + " |")
     else:
-        lines.append("| No structures matched the current filters. |  |  |  |  |  |  |  |  |")
+        lines.append("| " + " | ".join(["No structures matched the current filters."] + [""] * (len(headers) - 1)) + " |")
 
     lines.extend(["", "## Method Distribution", ""])
     if method_counts:
@@ -1548,6 +1620,18 @@ def build_gpcr_markdown_report(
     else:
         lines.append("- No likely state annotations available.")
 
+    annotation_counts = {}
+    for row in filtered_rows:
+        context = format_report_value(row.get("Activation Context", ""))
+        annotation_counts[context] = annotation_counts.get(context, 0) + 1
+
+    lines.extend(["", "## GPCR-Specific Annotation Summary", ""])
+    if annotation_counts:
+        for context, count in sorted(annotation_counts.items(), key=lambda item: (-item[1], item[0])):
+            lines.append(f"- **{context}:** {count}")
+    else:
+        lines.append("- No GPCR-specific annotation fields are available for the current filtered set.")
+
     lines.extend(["", "## Recommended Structures For Inspection", ""])
     if recommended:
         for row in recommended:
@@ -1557,7 +1641,8 @@ def build_gpcr_markdown_report(
             ligand_note = "listed ligand(s)" if row_has_ligand(row) else "no ligand listed"
             lines.append(
                 f"- **{pdb_id}:** {resolution} resolution, released {release_date}, {ligand_note}; "
-                f"state: {format_report_value(row.get('Likely State'))}."
+                f"state: {format_report_value(row.get('Likely State'))}; "
+                f"annotation: {format_report_value(row.get('Activation Context'))}."
             )
     else:
         lines.append("- No structures are available after the current filters.")
@@ -1583,6 +1668,18 @@ def build_gpcr_markdown_report(
 
     for row in filtered_rows:
         lines.append(f"### {format_report_value(row.get('PDB ID'))}")
+        lines.append("")
+        lines.append("**GPCR-specific annotations**")
+        lines.append("")
+        lines.append(f"- **Fusion / partner:** {format_report_value(row.get('Fusion / Partner'))}")
+        lines.append(f"- **Complex partner:** {format_report_value(row.get('Complex Partner'))}")
+        lines.append(f"- **Ligand context:** {format_report_value(row.get('Ligand Context'))}")
+        lines.append(f"- **Activation context:** {format_report_value(row.get('Activation Context'))}")
+        lines.append(f"- **Annotation confidence:** {format_report_value(row.get('Annotation Confidence'))}")
+        lines.append(f"- **Evidence terms:** {format_report_value(row.get('Annotation Evidence'))}")
+        lines.append("")
+        lines.append("**Research notes**")
+        lines.append("")
         lines.append(format_report_value(row.get("Research Notes")))
         lines.append("")
 
@@ -2402,6 +2499,37 @@ def build_receptor_match_terms(user_query: str, alias_info: dict):
     return unique_keep_order(normalized_terms)
 
 
+def is_mt1_melatonin_query(match_terms: list) -> bool:
+    """Return True when the current receptor match terms target MTNR1A / melatonin MT1."""
+    normalized_terms = {normalize_text(term) for term in match_terms or []}
+    mt1_terms = {
+        "mt1",
+        "mtnr1a",
+        "melatonin receptor 1a",
+        "melatonin mt1 receptor",
+        "mt1 receptor",
+        "melatonin receptor type 1a",
+    }
+    return bool(normalized_terms.intersection(mt1_terms))
+
+
+def has_mt1_mmp_exclusion_terms(text: str) -> bool:
+    """Return True for obvious MT1-MMP / MMP14 metalloproteinase false positives."""
+    normalized = normalize_text(text)
+    exclusion_terms = [
+        "mt1 mmp",
+        "mmp14",
+        "matrix metalloproteinase",
+        "membrane type 1 matrix metalloproteinase",
+        "membrane type1 matrix metalloproteinase",
+        "membrane type i matrix metalloproteinase",
+        "membrane type 1 metalloproteinase",
+        "collagenase",
+        "metalloprotease",
+    ]
+    return any(exact_normalized_phrase_match(term, normalized) for term in exclusion_terms)
+
+
 def is_structure_relevant_to_receptor(row, polymer_entities, match_terms):
     """
     Check whether a candidate structure really matches the receptor.
@@ -2418,6 +2546,9 @@ def is_structure_relevant_to_receptor(row, polymer_entities, match_terms):
         searchable_text_parts.append(entity.get("Reference Accessions", ""))
 
     searchable_text = " ".join(searchable_text_parts)
+
+    if is_mt1_melatonin_query(match_terms) and has_mt1_mmp_exclusion_terms(searchable_text):
+        return False
 
     for term in match_terms:
         if exact_normalized_phrase_match(term, searchable_text):
@@ -2723,9 +2854,349 @@ def generate_research_notes(basic_info, polymer_entities, ligands):
     return " ".join(notes)
 
 
+def collect_annotation_text(basic_info, polymer_entities, ligands, likely_state=None):
+    """Collect metadata text used by deterministic GPCR annotation rules."""
+    parts = [
+        basic_info.get("Title", "") if basic_info else "",
+        basic_info.get("Experimental method", "") if basic_info else "",
+        basic_info.get("Initial release date", "") if basic_info else "",
+        likely_state or "",
+    ]
+
+    for entity in polymer_entities or []:
+        parts.extend([
+            entity.get("Description", ""),
+            entity.get("Type", ""),
+            entity.get("Organism", ""),
+            entity.get("Reference Accessions", ""),
+        ])
+
+    for ligand in ligands or []:
+        parts.extend([
+            ligand.get("Ligand ID", ""),
+            ligand.get("Name", ""),
+        ])
+
+    return " ".join(str(part) for part in parts if part)
+
+
+def detect_terms(text: str, rules: list) -> list:
+    """Return display labels for regex rules found in normalized annotation text."""
+    found = []
+    normalized = normalize_description_text(text)
+
+    for label, pattern in rules:
+        if re.search(pattern, normalized, flags=re.IGNORECASE):
+            found.append(label)
+
+    return unique_keep_order(found)
+
+
+def detect_gpcr_fusion(annotation_text: str) -> list:
+    """Detect common GPCR fusion/construct engineering motifs."""
+    return detect_terms(annotation_text, [
+        ("BRIL", r"(?<![a-z0-9])bril(?![a-z0-9])"),
+        ("apocytochrome b562", r"apocytochrome\s+b562|cytochrome\s+b562|b562"),
+        ("T4 lysozyme/T4L", r"t4\s+lysozyme|(?<![a-z0-9])t4l(?![a-z0-9])"),
+        ("PGS", r"(?<![a-z0-9])pgs(?![a-z0-9])"),
+        ("rubredoxin", r"rubredoxin"),
+    ])
+
+
+def detect_complex_partner(annotation_text: str) -> list:
+    """Detect common signaling/stabilizing partners from metadata text."""
+    return detect_terms(annotation_text, [
+        ("G protein", r"g\s*protein|g[\s-]?alpha|heterotrimeric\s+g"),
+        ("mini-G", r"mini[\s-]?g|ming"),
+        ("Gs", r"(?<![a-z0-9])g[\s-]?s(?:\s+protein|\s+alpha|protein)?(?![a-z0-9])"),
+        ("Gi/Go", r"(?<![a-z0-9])g[\s-]?[io](?:\s+protein|\s+alpha|protein)?(?![a-z0-9])"),
+        ("Gq/G13", r"(?<![a-z0-9])g[\s-]?(q|13)(?:\s+protein|\s+alpha|protein)?(?![a-z0-9])"),
+        ("arrestin", r"arrestin|beta[\s-]?arrestin|β[\s-]?arrestin"),
+        ("nanobody", r"nanobody|(?<![a-z0-9])nb[0-9a-z]*(?![a-z0-9])"),
+        ("Fab", r"(?<![a-z0-9])fab(?![a-z0-9])"),
+        ("antibody", r"antibody|immunoglobulin"),
+        ("scFv", r"scfv|single[\s-]?chain\s+variable"),
+    ])
+
+
+def ligand_id_value(ligand: dict) -> str:
+    """Return a normalized ligand/component ID."""
+    return str((ligand or {}).get("Ligand ID", "") or "").strip().upper()
+
+
+def ligand_name_value(ligand: dict) -> str:
+    """Return a normalized ligand/component name."""
+    return str((ligand or {}).get("Name", "") or "").strip()
+
+
+def is_lipid_or_cholesterol_ligand(ligand: dict) -> bool:
+    """Return True for lipid/cholesterol-like ligand records."""
+    ligand_id = ligand_id_value(ligand)
+    name = normalize_description_text(ligand_name_value(ligand))
+
+    lipid_ids = {"CLR", "CHS", "OLA", "OLC", "OLB", "LPI", "LPA", "POP", "POPC", "POPE", "PGE"}
+    if ligand_id in lipid_ids:
+        return True
+
+    lipid_patterns = [
+        r"cholesterol",
+        r"lipid",
+        r"lysophosphatidylinositol",
+        r"phosphatidyl",
+        r"phospholipid",
+        r"oleic\s+acid",
+        r"palmit",
+        r"stear",
+        r"monoolein",
+    ]
+    return any(re.search(pattern, name) for pattern in lipid_patterns)
+
+
+def is_common_nonprimary_ligand(ligand: dict) -> bool:
+    """Return True for common solvent, ion, buffer, glycan, or crystallization components."""
+    ligand_id = ligand_id_value(ligand)
+    name = normalize_description_text(ligand_name_value(ligand))
+
+    if is_lipid_or_cholesterol_ligand(ligand):
+        return True
+
+    nonprimary_ids = {
+        "HOH", "H2O", "DOD",
+        "NA", "CL", "K", "MG", "CA", "ZN", "MN", "FE", "CU", "CD", "NI",
+        "PEG", "PG4", "PGE", "GOL", "EDO", "MPD",
+        "SO4", "PO4", "ACT", "ACE", "NO3",
+        "TRS", "HEP", "MES", "CIT", "BME",
+        "NAG", "MAN", "BMA", "FUC", "GAL", "GLC",
+    }
+    if ligand_id in nonprimary_ids:
+        return True
+
+    nonprimary_patterns = [
+        r"\bwater\b",
+        r"\bsodium\b",
+        r"\bchloride\b",
+        r"\bpotassium\b",
+        r"\bmagnesium\b",
+        r"\bcalcium\b",
+        r"\bzinc\b",
+        r"polyethylene\s+glycol|\bpeg\b",
+        r"\bglycerol\b",
+        r"\bsulfate\b",
+        r"\bphosphate\b",
+        r"\bacetate\b",
+        r"\btris\b",
+        r"\bhepes\b",
+        r"\bmes\b",
+        r"\bcitrate\b",
+        r"n\s*acetyl.*glucosamine|glycan",
+    ]
+    return any(re.search(pattern, name) for pattern in nonprimary_patterns)
+
+
+def get_primary_ligand_evidence(ligands: list) -> list:
+    """Return ligand IDs that look like primary small-molecule/non-polymer records."""
+    primary = []
+    for ligand in ligands or []:
+        ligand_id = ligand_id_value(ligand)
+        if not ligand_id or is_common_nonprimary_ligand(ligand):
+            continue
+        primary.append(ligand_id)
+    return unique_keep_order(primary)
+
+
+def get_lipid_ligand_evidence(ligands: list, annotation_text: str) -> list:
+    """Return compact lipid/cholesterol evidence from ligand records and metadata text."""
+    evidence = []
+    for ligand in ligands or []:
+        if is_lipid_or_cholesterol_ligand(ligand):
+            ligand_id = ligand_id_value(ligand)
+            evidence.append(ligand_id or "lipid/cholesterol")
+
+    combined = normalize_description_text(annotation_text)
+    lipid_text_rules = [
+        ("cholesterol", r"cholesterol"),
+        ("LPI", r"(?<![a-z0-9])lpi(?![a-z0-9])"),
+        ("lysophosphatidylinositol", r"lysophosphatidylinositol"),
+        ("lipid", r"(?<![a-z0-9])lipid(?![a-z0-9])"),
+        ("oleic acid", r"oleic\s+acid"),
+        ("phospholipid", r"phospholipid|phosphatidyl"),
+    ]
+    evidence.extend(detect_terms(combined, lipid_text_rules))
+    return unique_keep_order(evidence)
+
+
+def detect_ligand_context(annotation_text: str, ligands: list) -> tuple:
+    """Infer a cautious ligand context from ligand records and metadata wording."""
+    ligand_text = " ".join([
+        f"{ligand_id_value(ligand)} {ligand_name_value(ligand)}"
+        for ligand in ligands or []
+    ])
+    combined = normalize_description_text(f"{annotation_text} {ligand_text}")
+    primary_ligands = get_primary_ligand_evidence(ligands)
+    lipid_evidence = get_lipid_ligand_evidence(ligands, f"{annotation_text} {ligand_text}")
+
+    pharmacology_terms = detect_terms(combined, [
+        ("agonist", r"(?<!inverse\s)agonist"),
+        ("antagonist", r"antagonist"),
+        ("inverse agonist", r"inverse\s+agonist"),
+        ("inhibitor", r"inhibitor"),
+        ("allosteric", r"allosteric"),
+        ("orthosteric", r"orthosteric"),
+        ("ligand-bound", r"ligand[\s-]?bound|bound\s+to"),
+        ("apo", r"(?<![a-z0-9])apo(?![a-z0-9])|ligand[\s-]?free"),
+    ])
+
+    evidence = unique_keep_order(primary_ligands + lipid_evidence + pharmacology_terms)
+
+    if primary_ligands and lipid_evidence:
+        return "small-molecule ligand + lipid/cholesterol present", evidence
+    if primary_ligands:
+        return "ligand-bound", evidence
+    if lipid_evidence:
+        return "lipid/cholesterol present", evidence
+    if "apo" in pharmacology_terms:
+        return "apo/no primary ligand detected", unique_keep_order(evidence)
+
+    return "not clear", unique_keep_order(evidence)
+
+
+def infer_activation_context(annotation_text: str, likely_state: str, partners: list, ligand_context: str) -> tuple:
+    """Infer cautious activation context from existing annotations and metadata clues."""
+    combined = normalize_description_text(f"{annotation_text} {likely_state or ''}")
+    evidence = []
+
+    active_terms = detect_terms(combined, [
+        ("active", r"active[\s-]?state|activation|agonist"),
+        ("signaling complex", r"signaling\s+complex|g\s*protein|arrestin|mini[\s-]?g"),
+    ])
+    inactive_terms = detect_terms(combined, [
+        ("inactive", r"inactive[\s-]?state|inactive"),
+        ("antagonist", r"antagonist|inverse\s+agonist"),
+    ])
+    evidence.extend(active_terms + inactive_terms)
+
+    if partners:
+        evidence.extend(partners[:4])
+        return "complex-stabilized", unique_keep_order(evidence)
+    if inactive_terms:
+        return "inactive-like", unique_keep_order(evidence)
+    if active_terms:
+        return "active-like", unique_keep_order(evidence)
+    if str(ligand_context or "").startswith("apo"):
+        return "apo/unclear", unique_keep_order(evidence + ["apo"])
+
+    return "not enough information", unique_keep_order(evidence)
+
+
+def build_gpcr_annotation(basic_info, polymer_entities, ligands, likely_state=None) -> dict:
+    """Build cautious, rule-based GPCR structural annotations from local metadata."""
+    annotation_text = collect_annotation_text(
+        basic_info,
+        polymer_entities,
+        ligands,
+        likely_state=likely_state,
+    )
+    fusions = detect_gpcr_fusion(annotation_text)
+    partners = detect_complex_partner(annotation_text)
+    ligand_context, ligand_evidence = detect_ligand_context(annotation_text, ligands)
+    activation_context, activation_evidence = infer_activation_context(
+        annotation_text,
+        likely_state,
+        partners,
+        ligand_context,
+    )
+
+    evidence_terms = unique_keep_order(fusions + partners + ligand_evidence + activation_evidence)
+    notes = []
+    if fusions:
+        notes.append("Metadata indicates possible construct engineering or fusion elements; verify position and construct design in the source entry.")
+    if partners:
+        notes.append("Detected partner/stabilizer terms may indicate a signaling or stabilization complex; verify stoichiometry and biological relevance manually.")
+    if ligand_context in [
+        "ligand-bound",
+        "lipid/cholesterol present",
+        "small-molecule ligand + lipid/cholesterol present",
+    ]:
+        notes.append("Ligand records or ligand terms are present; confirm ligand identity, site, and functional role in the PDB entry and publication.")
+    if activation_context in ["active-like", "inactive-like", "complex-stabilized"]:
+        notes.append("Activation context is inferred from metadata terms and should be treated as a review cue, not a definitive state assignment.")
+    if not notes:
+        notes.append("Not enough GPCR-specific metadata was detected for detailed construct or state interpretation.")
+
+    if len(evidence_terms) >= 4 and (partners or fusions):
+        confidence = "high"
+    elif len(evidence_terms) >= 2 or partners or fusions or ligand_context != "not clear":
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    return {
+        "detected_fusion": "; ".join(fusions) if fusions else "Not detected",
+        "detected_complex_partner": "; ".join(partners) if partners else "Not detected",
+        "ligand_context": ligand_context,
+        "likely_activation_context": activation_context,
+        "construct_engineering_notes": " ".join(notes),
+        "confidence": confidence,
+        "evidence_terms": evidence_terms,
+    }
+
+
+def render_gpcr_annotation_panel(annotation: dict):
+    """Render compact GPCR-specific annotation details."""
+    annotation = annotation or {}
+    st.markdown("### GPCR-specific annotations")
+    a1, a2, a3 = st.columns(3)
+    a4, a5, a6 = st.columns(3)
+
+    with a1:
+        st.caption("Detected fusion")
+        st.info(annotation.get("detected_fusion", "Not detected"))
+    with a2:
+        st.caption("Complex partner")
+        st.info(annotation.get("detected_complex_partner", "Not detected"))
+    with a3:
+        st.caption("Ligand context")
+        st.info(annotation.get("ligand_context", "not clear"))
+    with a4:
+        st.caption("Activation context")
+        st.info(annotation.get("likely_activation_context", "not enough information"))
+    with a5:
+        st.caption("Confidence")
+        st.info(annotation.get("confidence", "low"))
+    with a6:
+        st.caption("Evidence terms")
+        evidence = annotation.get("evidence_terms", [])
+        st.info(", ".join(evidence[:8]) if evidence else "Not available")
+
+    with st.expander("Construct engineering notes", expanded=False):
+        st.write(annotation.get("construct_engineering_notes", "Not available"))
+
+
+def format_annotation_for_markdown(annotation: dict) -> str:
+    """Format GPCR-specific annotation as GitHub-readable Markdown."""
+    annotation = annotation or {}
+    evidence = annotation.get("evidence_terms", [])
+    return "\n".join([
+        f"- **Detected fusion:** {format_report_value(annotation.get('detected_fusion'))}",
+        f"- **Complex partner:** {format_report_value(annotation.get('detected_complex_partner'))}",
+        f"- **Ligand context:** {format_report_value(annotation.get('ligand_context'))}",
+        f"- **Activation context:** {format_report_value(annotation.get('likely_activation_context'))}",
+        f"- **Confidence:** {format_report_value(annotation.get('confidence'))}",
+        f"- **Evidence terms:** {format_report_value(', '.join(evidence) if evidence else '')}",
+        f"- **Construct notes:** {format_report_value(annotation.get('construct_engineering_notes'))}",
+    ])
+
+
 def generate_markdown_report(pdb_id, basic_info, polymer_entities, ligands, research_notes):
     """Generate a simple Markdown report."""
     report = f"# AI GPCR Structure Explorer Report: {pdb_id.upper()}\n\n"
+    likely_state = infer_likely_state(basic_info, polymer_entities, ligands)
+    annotation = build_gpcr_annotation(
+        basic_info,
+        polymer_entities,
+        ligands,
+        likely_state=likely_state,
+    )
 
     report += "## Structure Overview\n\n"
     for key, value in basic_info.items():
@@ -2753,11 +3224,15 @@ def generate_markdown_report(pdb_id, basic_info, polymer_entities, ligands, rese
     report += "\n## Research Notes\n\n"
     report += f"{research_notes}\n"
 
+    report += "\n## GPCR-Specific Annotations\n\n"
+    report += format_annotation_for_markdown(annotation)
+    report += "\n"
+
     report += "\n## Notes\n\n"
     report += (
         "This report was generated automatically using metadata retrieved from the RCSB PDB. "
-        "Future versions may include AI-assisted structural interpretation, GPCR state annotation, "
-        "construct design features, and structure comparison.\n"
+        "GPCR-specific annotations are rule-based metadata cues and should be verified manually "
+        "against the structure, construct information, and source publication.\n"
     )
 
     return report
@@ -2794,6 +3269,12 @@ def build_structure_summary_row(pdb_id: str):
     fusion_or_partner = infer_fusion_or_partner(polymer_entities)
     likely_state = infer_likely_state(basic_info, polymer_entities, ligands)
     use_case = infer_likely_use_case(basic_info, polymer_entities, ligands)
+    gpcr_annotation = build_gpcr_annotation(
+        basic_info,
+        polymer_entities,
+        ligands,
+        likely_state=likely_state,
+    )
 
     row = {
         "PDB ID": str(pdb_id),
@@ -2804,6 +3285,11 @@ def build_structure_summary_row(pdb_id: str):
         "Organism": str(organism_text or "N/A"),
         "Ligands": str(ligand_text),
         "Fusion / Partner": str(fusion_or_partner),
+        "Complex Partner": str(gpcr_annotation.get("detected_complex_partner", "Not detected")),
+        "Ligand Context": str(gpcr_annotation.get("ligand_context", "not clear")),
+        "Activation Context": str(gpcr_annotation.get("likely_activation_context", "not enough information")),
+        "Annotation Confidence": str(gpcr_annotation.get("confidence", "low")),
+        "Annotation Evidence": ", ".join(gpcr_annotation.get("evidence_terms", [])),
         "Likely State": str(likely_state),
         "Use Case": str(use_case),
         "Research Notes": str(research_notes),
@@ -3248,13 +3734,13 @@ def render_protein_sequence_panel(overview: dict):
         st.markdown("**Amino acid composition**")
         st.dataframe(
             rows_for_streamlit_table(calculate_amino_acid_composition(sequence)),
-            use_container_width=True,
+            width="stretch",
         )
 
         st.markdown("**Residue class summary**")
         st.dataframe(
             rows_for_streamlit_table(calculate_residue_class_summary(sequence)),
-            use_container_width=True,
+            width="stretch",
         )
 
 
@@ -3466,7 +3952,7 @@ with tab1:
 
     if search_submitted:
         if not receptor_query.strip():
-            st.warning("Please enter a GPCR name, abbreviation, or gene symbol.")
+            st.warning("Enter a GPCR name, abbreviation, or gene symbol to start a structure search.")
         else:
             st.session_state["gpcr_candidate_truncation_note"] = None
 
@@ -3529,7 +4015,7 @@ with tab1:
                     st.write("**UniProt matches used for alias expansion:**")
                     st.dataframe(
                         rows_for_streamlit_table(alias_info["uniprot_rows"]),
-                        use_container_width=True
+                        width="stretch"
                     )
                 else:
                     st.info(
@@ -3561,7 +4047,10 @@ with tab1:
                 candidate_pdb_ids = candidate_pdb_ids[:summarize_limit]
 
             if not candidate_pdb_ids:
-                st.error("No matching PDB structures were found.")
+                st.error(
+                    "No candidate PDB structures were found for this query. "
+                    "Try another receptor name, gene symbol, or enable supplemental RCSB search."
+                )
                 st.session_state["gpcr_result_rows"] = None
                 st.session_state["gpcr_excluded_rows"] = []
                 st.session_state["gpcr_receptor_overview"] = None
@@ -3598,6 +4087,11 @@ with tab1:
                                 "Organism": "N/A",
                                 "Ligands": "N/A",
                                 "Fusion / Partner": "N/A",
+                                "Complex Partner": "N/A",
+                                "Ligand Context": "N/A",
+                                "Activation Context": "N/A",
+                                "Annotation Confidence": "N/A",
+                                "Annotation Evidence": "N/A",
                                 "Likely State": "N/A",
                                 "Use Case": "N/A",
                                 "Research Notes": "Error occurred during retrieval.",
@@ -3605,7 +4099,8 @@ with tab1:
 
                 if not result_rows:
                     st.error(
-                        "UniProt/RCSB returned candidate structures, but none passed the receptor-specific filter."
+                        "Candidate structures were found, but none passed the receptor-specific filter. "
+                        "Review the search details or broaden the query if this seems unexpected."
                     )
                     st.session_state["gpcr_result_rows"] = None
                     st.session_state["gpcr_excluded_rows"] = excluded_rows
@@ -3631,6 +4126,7 @@ with tab1:
     if result_rows:
         filtered_result_rows = list(result_rows)
         st.markdown("### Result Workspace")
+        st.markdown('<span class="result-workspace-tabs-marker"></span>', unsafe_allow_html=True)
         overview_tab, structures_tab, inspect_tab, export_tab = st.tabs([
             "Overview",
             "Structures",
@@ -3825,7 +4321,7 @@ with tab1:
                 st.metric("Filtered results", str(len(filtered_result_rows)))
 
             st.subheader("Candidate Structures")
-            st.info(
+            st.caption(
                 "Click a PDB ID to open the RCSB entry, or use the Inspect PDB tab to review "
                 "structure-level details inside this app."
             )
@@ -3846,10 +4342,10 @@ with tab1:
                             display_text=r"https://www\.rcsb\.org/structure/([A-Za-z0-9]+)"
                         )
                     },
-                    use_container_width=True
+                    width="stretch"
                 )
             else:
-                st.info("No structures match the current filters.")
+                st.info("No structures match the current filters. Relax one or more filters to show rows again.")
 
             with st.expander("Full detailed table", expanded=False):
                 st.caption(
@@ -3857,7 +4353,7 @@ with tab1:
                 )
                 st.dataframe(
                     rows_for_streamlit_table(filtered_result_rows),
-                    use_container_width=True
+                    width="stretch"
                 )
 
             with st.expander("Excluded broad search hits"):
@@ -3867,7 +4363,7 @@ with tab1:
                     )
                     st.dataframe(
                         rows_for_streamlit_table(excluded_rows),
-                        use_container_width=True
+                        width="stretch"
                     )
                 else:
                     st.write("No broad false-positive structures were excluded.")
@@ -3918,7 +4414,7 @@ with tab1:
                         entry_data = fetch_pdb_entry(selected_pdb)
 
                         if not entry_data:
-                            st.error(f"PDB ID '{selected_pdb}' was not found.")
+                            st.error(f"PDB ID '{selected_pdb}' was not found in the RCSB response.")
                         else:
                             basic_info = parse_basic_info(entry_data)
                             polymer_entities = fetch_polymer_entities(selected_pdb, entry_data)
@@ -3927,6 +4423,12 @@ with tab1:
                             fusion_or_partner = infer_fusion_or_partner(polymer_entities)
                             likely_state = infer_likely_state(basic_info, polymer_entities, ligands)
                             use_case = infer_likely_use_case(basic_info, polymer_entities, ligands)
+                            gpcr_annotation = build_gpcr_annotation(
+                                basic_info,
+                                polymer_entities,
+                                ligands,
+                                likely_state=likely_state,
+                            )
 
                             research_notes = generate_research_notes(
                                 basic_info,
@@ -3950,7 +4452,7 @@ with tab1:
                             if polymer_entities:
                                 st.dataframe(
                                     rows_for_streamlit_table(polymer_entities),
-                                    use_container_width=True
+                                    width="stretch"
                                 )
                             else:
                                 st.info("No polymer entities found.")
@@ -3959,7 +4461,7 @@ with tab1:
                             if ligands:
                                 st.dataframe(
                                     rows_for_streamlit_table(ligands),
-                                    use_container_width=True
+                                    width="stretch"
                                 )
                             else:
                                 st.info("No ligands found.")
@@ -3975,6 +4477,8 @@ with tab1:
                             with gcol3:
                                 st.caption("Structure Role")
                                 st.info(use_case)
+
+                            render_gpcr_annotation_panel(gpcr_annotation)
 
                             st.markdown("### Research Notes")
                             st.info(format_research_notes_display(research_notes))
@@ -4054,7 +4558,7 @@ with tab1:
                 filtered_result_rows,
                 result_rows,
                 diagnostics=saved_search_diagnostics,
-                app_version="v0.8.0",
+                app_version="v0.9.4",
             )
 
             with st.expander("Preview Markdown report", expanded=False):
@@ -4083,7 +4587,7 @@ with tab2:
 
     if st.button("Search"):
         if not query.strip():
-            st.warning("Please enter a PDB ID.")
+            st.warning("Enter a PDB ID to load a single structure summary.")
         else:
             pdb_id = query.strip().upper()
 
@@ -4092,11 +4596,18 @@ with tab2:
                     entry_data = fetch_pdb_entry(pdb_id)
 
                     if not entry_data:
-                        st.error(f"PDB ID '{pdb_id}' was not found.")
+                        st.error(f"PDB ID '{pdb_id}' was not found in the RCSB response.")
                     else:
                         basic_info = parse_basic_info(entry_data)
                         polymer_entities = fetch_polymer_entities(pdb_id, entry_data)
                         ligands = fetch_ligands(pdb_id, entry_data)
+                        likely_state = infer_likely_state(basic_info, polymer_entities, ligands)
+                        gpcr_annotation = build_gpcr_annotation(
+                            basic_info,
+                            polymer_entities,
+                            ligands,
+                            likely_state=likely_state,
+                        )
 
                         research_notes = generate_research_notes(
                             basic_info,
@@ -4111,7 +4622,7 @@ with tab2:
                         if polymer_entities:
                             st.dataframe(
                                 rows_for_streamlit_table(polymer_entities),
-                                use_container_width=True
+                                width="stretch"
                             )
                         else:
                             st.info("No polymer entities found.")
@@ -4120,13 +4631,15 @@ with tab2:
                         if ligands:
                             st.dataframe(
                                 rows_for_streamlit_table(ligands),
-                                use_container_width=True
+                                width="stretch"
                             )
                         else:
                             st.info("No ligands found.")
 
                         st.subheader("Research Notes")
                         st.info(format_research_notes_display(research_notes))
+
+                        render_gpcr_annotation_panel(gpcr_annotation)
 
                         report = generate_markdown_report(
                             pdb_id,
@@ -4150,7 +4663,7 @@ with tab2:
                             st.json(entry_data)
 
                 except Exception as e:
-                    st.error(f"An error occurred: {e}")
+                    st.error(f"Could not load the structure summary: {e}")
 
 
 with tab3:
@@ -4163,7 +4676,7 @@ with tab3:
 
     if st.button("Compare Structures"):
         if not compare_query.strip():
-            st.warning("Please enter at least one PDB ID.")
+            st.warning("Enter at least one PDB ID to compare structures.")
         else:
             pdb_ids = [
                 pdb_id.strip().upper()
@@ -4190,6 +4703,11 @@ with tab3:
                                 "Organism": "N/A",
                                 "Ligands": "N/A",
                                 "Fusion / Partner": "N/A",
+                                "Complex Partner": "N/A",
+                                "Ligand Context": "N/A",
+                                "Activation Context": "N/A",
+                                "Annotation Confidence": "N/A",
+                                "Annotation Evidence": "N/A",
                                 "Likely State": "N/A",
                                 "Use Case": "N/A",
                                 "Research Notes": "Structure not found.",
@@ -4205,6 +4723,11 @@ with tab3:
                             "Organism": "N/A",
                             "Ligands": "N/A",
                             "Fusion / Partner": "N/A",
+                            "Complex Partner": "N/A",
+                            "Ligand Context": "N/A",
+                            "Activation Context": "N/A",
+                            "Annotation Confidence": "N/A",
+                            "Annotation Evidence": "N/A",
                             "Likely State": "N/A",
                             "Use Case": "N/A",
                             "Research Notes": "Error occurred during retrieval.",
@@ -4213,14 +4736,14 @@ with tab3:
             st.subheader("Structure Comparison Table")
             st.dataframe(
                 rows_for_streamlit_table(comparison_rows),
-                use_container_width=True
+                width="stretch"
             )
 
 
 with tab4:
     st.header("About AI GPCR Structure Explorer")
 
-    st.caption("Version v0.8.1")
+    st.caption("Version v0.9.4")
 
     st.write(
         """
@@ -4231,6 +4754,15 @@ with tab4:
         PDB entries, experimental methods, resolution, ligands, polymer entities, fusion-protein
         strategies, signaling partners, receptor states, and construct-design references.
 
+        Version v0.9.4 adds conservative MT1 query disambiguation so melatonin
+        receptor MT1/MTNR1A searches exclude obvious MT1-MMP/MMP14 metalloproteinase hits.
+        Version v0.9.3 refreshes Streamlit table width parameters and lightly polishes
+        messages, spacing, and section presentation without changing search or export behavior.
+        Version v0.9.2 refines ligand-context annotation so primary ligand-like
+        records and lipid/cholesterol-like records can both be reported.
+        Version v0.9.0 adds rule-based GPCR-specific structural annotations for
+        fusion constructs, complex partners, ligand context, activation context,
+        evidence terms, and cautious construct-engineering notes.
         Version v0.8.1 polishes the GitHub portfolio README and project metadata.
         Version v0.8.0 adds a richer rule-based Markdown report generator for
         filtered GPCR search results, including search diagnostics, method,
@@ -4276,6 +4808,7 @@ with tab4:
         - Receptor overview from the best-matching UniProt record (gene, function, compact GO process terms, cross-refs, external links)
         - Rule-based receptor coupling hints from UniProt/GO annotations (Gs/cAMP, Gi/o, Gq/Ca²⁺, G12/13, β-arrestin)
         - Automatic GPCRdb slug inference from UniProt/GPCRdb mapping data, with local fallbacks
+        - Rule-based GPCR-specific structural annotations for constructs, partners, ligands, and activation context
         - UniProt protein sequence display, FASTA download, and amino acid composition analysis
         - Download a receptor-level Markdown search summary plus per-structure Markdown reports
         - Retrieve structure metadata using the RCSB Data API
